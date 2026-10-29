@@ -1,0 +1,25 @@
+TUPÃ: HERDEIRA DO TROVÃO — CAPÍTULO 1 (V6.1)
+================================================
+Esta versão organiza o código da V6, sem mudar sua aparência ou mecânicas.
+
+REQUISITOS
+- Python 3.10 ou superior
+- pygame (instalar: py -m pip install -r requirements.txt)
+
+COMO EXECUTAR
+1. Abra esta pasta no VS Code.
+2. No terminal, rode: py -m pip install -r requirements.txt
+3. Depois: py main.py
+
+ARQUIVOS
+- main.py: janela, imagens, diálogos na tela e regras de batalha.
+- roteiro.py: falas e cenas, para editar sem mexer na batalha.
+- assets/: imagens utilizadas no jogo (sem imagens antigas não utilizadas).
+
+CONTROLES
+Espaço/Enter/clique: avançar diálogo.
+Batalha: 1/2/3 escolhem alvo; Q ataque básico; E especial; Enter ataca.
+Esc: sair do menu ou voltar de telas de fim.
+
+A primeira batalha é intencionalmente perdida para avançar a história.
+O capítulo 1 é independente do aplicativo Tupã principal.
