@@ -61,7 +61,4 @@ ENDING=[
 ('dawn','Maíra','Eu vou encontrar o homem que fez isso.'),
 ('dawn','Caubi','Então você não vai sozinha.'),
 ]
-CAP2=[
-    ('dawn','Narrador','Três dias depois, Maíra, Caubi e a jovem arqueira seguem pela floresta em busca de abrigo.'),
-]
 
