@@ -3,7 +3,9 @@ import random
 from pathlib import Path
 from roteiro import SCENES, AFTER_LOSS, ENDING
 from capitulo2 import CENA1, CENA2, CENA3, CENA4, CENA5, CENA5_FIM
-from capitulo3 import CENA1_3, CENA2_3, CENA3_3, CENA4_3 
+from capitulo3 import CENA1_3, CENA2_3, CENA3_3, CENA4_3
+from capitulo4 import CENA1_4, CENA1_4_FIM, CENA2_4, CENA2_4_FIM, CENA3_4
+from capitulo5 import CENA1_5, CENA1_5_FIM, CENA2_5, CENA2_5_FIM, CENA3_5, CENA3_5_FIM, CENA4_5, CENA4_5_FIM
 import pygame
 from personagem import Personagem
 from vilao import Vilao
@@ -25,9 +27,9 @@ GREEN=(94,196,125); DARK=(13,19,27)
 ASSET = Path(__file__).resolve().parent / 'assets'
 def load(name):
     return pygame.image.load(str(ASSET / (name + '.png'))).convert_alpha()
-BACKS={n:pygame.transform.smoothscale(load('bg_'+n),(W,H)) for n in ('fire','storm','peace','dawn','floresta','equipe', 'acampamento','noite', 'clareira', 'mata', 'mata_fogo')}
-PORTRAITS={n:load('portrait_'+n) for n in ('maira','caubi','araci','captain','leader','soldier', 'jaciara', 'akin', 'curupira', 'boitata')}
-ACTORS={n:load('actor_'+n) for n in ('maira','maira2','caubi','araci','captain','leader','soldier', 'jaciara', 'akin', 'angoera', 'ancestral', 'curupira', 'boitata')}
+BACKS={n:pygame.transform.smoothscale(load('bg_'+n),(W,H)) for n in ('fire','storm','peace','dawn','floresta','equipe', 'acampamento','noite', 'clareira', 'mata', 'mata_fogo', 'mata_corrompida')}
+PORTRAITS={n:load('portrait_'+n) for n in ('maira','caubi','araci','captain','leader','soldier', 'jaciara', 'akin', 'curupira', 'boitata', 'guaraci', 'jaci', 'angoera_primordial')}
+ACTORS={n:load('actor_'+n) for n in ('maira','maira2','caubi','araci','captain','leader','soldier', 'jaciara', 'akin', 'angoera', 'ancestral', 'curupira', 'boitata', 'guaraci', 'jaci', 'angoera_primordial')}
 TELA_INICIAL=pygame.transform.smoothscale(load('tela_inicial'),(W,H))
 TELA_CAPITULOS=pygame.transform.smoothscale(load('tela_capitulos'),(W,H))
 TELA_FIM=pygame.transform.smoothscale(load('tela_fim'),(W,H))
@@ -39,8 +41,8 @@ PERSONAGENS = [
     'Jaciara',
     'Akin',
     'Curupira',
-    '???',
-    '???',
+    'Guaraci',
+    'Jaci',
     '???',
     '???',
     '???'
@@ -95,7 +97,7 @@ PLACAS_ELENCO = [230, 372]
 X_EQUIPE = [597, 712, 830]
 
 # Nome do personagem -> nome do arquivo do retrato
-RETRATOS = {'Maíra': 'maira', 'Caubi': 'caubi', 'Jaciara': 'jaciara', 'Akin': 'akin', 'Curupira': 'curupira', 'Araci': 'araci', 'Capitão': 'captain', 'Líder': 'leader', 'Soldado 1': 'soldier', 'Soldado 2': 'soldier', 'Soldado 3': 'soldier'}
+RETRATOS = {'Maíra': 'maira', 'Caubi': 'caubi', 'Jaciara': 'jaciara', 'Akin': 'akin', 'Curupira': 'curupira', 'Araci': 'araci', 'Capitão': 'captain', 'Líder': 'leader', 'Soldado 1': 'soldier', 'Soldado 2': 'soldier', 'Soldado 3': 'soldier', 'Guaraci': 'guaraci', 'Jaci': 'jaci', 'Angoera Primordial': 'angoera_primordial'}
 NOME_FONT = pygame.font.SysFont('arial', 12, bold=True)
 
 def desenhar_retrato(nome, area):
@@ -220,7 +222,50 @@ def cast_scene(kind,who):
                 actor('akin',600,398,300,who=='Akin')
                 actor('curupira',810,398,300,who=='Curupira')
 
+    elif script in (CENA1_5, CENA1_5_FIM, CENA2_5, CENA2_5_FIM, CENA3_5, CENA3_5_FIM, CENA4_5, CENA4_5_FIM):
+        # Capítulo final: o grupo aparece junto; o Capitão ganha destaque.
+        if who == 'Capitão':
+            actor('captain', 720, 398, 340, True, flip=True)
+            actor('maira', 250, 398, 300, False)
+        elif who == 'Tupã':
+            # Ainda não existe sprite/retrato de Tupã no pacote de assets.
+            # A cena usa o cenário de tempestade e deixa a fala sem retrato próprio.
+            actor('maira', 250, 398, 300, False)
+            actor('caubi', 430, 398, 285, False)
+            actor('jaciara', 610, 398, 285, False)
         else:
+            # No capítulo 5, Guaraci e Jaci não participam das cenas.
+            # Eles continuam disponíveis na seleção de equipe para as batalhas.
+            elenco = [
+                ('maira', 90, 300, 'Maíra'),
+                ('caubi', 205, 285, 'Caubi'),
+                ('jaciara', 320, 285, 'Jaciara'),
+                ('akin', 435, 285, 'Akin'),
+                ('curupira', 550, 285, 'Curupira'),
+            ]
+            for chave, x, altura, nome in elenco:
+                actor(chave, x, 398, altura, who == nome, flip=(chave in ('caubi', 'curupira', 'jaci')))
+
+    elif script in (CENA1_4, CENA1_4_FIM, CENA2_4, CENA2_4_FIM, CENA3_4):
+        # Elenco do capítulo 4. Esta condição fica fora do bloco 'dawn',
+        # pois as cenas usam ambientes como noite, mata_corrompida e clareira.
+        elenco = [
+            ('maira', 90, 300, 'Maíra'),
+            ('caubi', 205, 285, 'Caubi'),
+            ('jaciara', 320, 285, 'Jaciara'),
+            ('akin', 435, 285, 'Akin'),
+            ('curupira', 550, 285, 'Curupira'),
+        ]
+        if script in (CENA2_4, CENA2_4_FIM, CENA3_4):
+            elenco += [('guaraci', 710, 300, 'Guaraci'), ('jaci', 850, 285, 'Jaci')]
+        if who == 'Angoera Primordial':
+            actor('angoera_primordial', 720, 398, 340, True)
+            actor('maira', 250, 398, 300, False)
+        else:
+            for chave, x, altura, nome in elenco:
+                actor(chave, x, 398, altura, who == nome, flip=(chave in ('caubi', 'curupira', 'jaci')))
+
+    else:
             actor('maira',270,398,340,who=='Maíra')
             actor('caubi',702,398,330,who=='Caubi',flip=True)    
 
@@ -238,10 +283,14 @@ def portrait_for(who):
     'Soldado 3':'soldier',
     'Curupira':'curupira',
     'Boitatá':'boitata',
+    'Guaraci': 'guaraci',
+    'Jaci': 'jaci',
+    'Angoera Primordial': 'angoera_primordial'
         }.get(who)
     if not key:return
     # Retrato pequeno dentro da caixa de diálogo.
-    im=PORTRAITS[key]; w=86; h=106
+    # Cada personagem usa seu próprio retrato; o Primordial tem arte dedicada.
+    im=PORTRAITS.get(key, PORTRAITS['leader']); w=86; h=106
     crop=pygame.transform.smoothscale(im,(w,h))
     screen.blit(crop,(33,405))
     pygame.draw.rect(screen,GOLD,(32,404,w+2,h+2),2)
@@ -272,7 +321,7 @@ def start_battle(second=False):
     notice='A tempestade fortalece Maíra!' if second else 'Derrote os invasores!';notice_until=pygame.time.get_ticks()+1900
 
 def advance():
-    global idx,script,state,cap2_parte 
+    global idx,script,state,cap2_parte,turnos_primordial,turnos_cap5
     idx+=1
     if idx>=len(script):
         if script is SCENES:start_battle(False)
@@ -308,7 +357,60 @@ def advance():
             cap2_parte = 4
             state = 'team_select'
         elif script is CENA4_3:
-            state = 'chapters'    
+            state = 'chapters'
+        elif script is CENA1_4:
+            EQUIPE.clear()
+            cap2_parte = 5
+            state = 'team_select'
+
+        elif script is CENA1_4_FIM:
+            # Primeira luta contra o Primordial: apenas a equipe original.
+            EQUIPE.clear()
+            equipe_batalha.clear()
+            turnos_primordial = 0
+            cap2_parte = 6
+            state = 'team_select'
+
+        elif script is CENA2_4:
+            # Os deuses só são liberados depois da derrota e de sua chegada.
+            for personagem in ('Guaraci', 'Jaci'):
+                if personagem not in DESBLOQUEADOS:
+                    DESBLOQUEADOS.append(personagem)
+            EQUIPE.clear()
+            cap2_parte = 7
+            state = 'team_select'
+
+        elif script is CENA2_4_FIM:
+            next_script(CENA3_4)
+
+        elif script is CENA3_4:
+            state = 'chapters'
+        elif script is CENA1_5:
+            EQUIPE.clear()
+            equipe_batalha.clear()
+            cap2_parte = 8
+            state = 'team_select'
+        elif script is CENA1_5_FIM:
+            next_script(CENA2_5)
+        elif script is CENA2_5:
+            EQUIPE.clear()
+            equipe_batalha.clear()
+            cap2_parte = 9
+            state = 'team_select'
+        elif script is CENA2_5_FIM:
+            next_script(CENA3_5)
+        elif script is CENA3_5:
+            EQUIPE.clear()
+            equipe_batalha.clear()
+            turnos_cap5 = 0
+            cap2_parte = 10
+            state = 'team_select'
+        elif script is CENA3_5_FIM:
+            next_script(CENA4_5)
+        elif script is CENA4_5:
+            next_script(CENA4_5_FIM)
+        elif script is CENA4_5_FIM:
+            state = 'end'
 
 def next_script(which):
     global script,idx,state
@@ -354,34 +456,40 @@ def fim_batalha_cap2():
         next_script(CENA2_3)
     elif cap2_parte == 4:
         next_script(CENA4_3)
+    elif cap2_parte == 5:
+        next_script(CENA1_4_FIM)
+    elif cap2_parte == 7:
+        next_script(CENA2_4_FIM)
+    elif cap2_parte == 8:
+        next_script(CENA1_5_FIM)
+    elif cap2_parte == 9:
+        next_script(CENA2_5_FIM)
+    elif cap2_parte == 10:
+        next_script(CENA3_5_FIM)
     else:
         next_script(CENA5_FIM)
 
 def atacar_cap2(especial=False):
-    global alvo_cap2, notice, notice_until, state
+    global alvo_cap2, notice, notice_until, state, turnos_primordial, turnos_cap5
 
     if not equipe_batalha or not inimigos_cap2:
         return
 
     aliado = equipe_batalha[aliado_selecionado]
-
     if not aliado.esta_vivo():
         notice = 'Esse personagem está derrotado!'
         notice_until = pygame.time.get_ticks() + 1500
         return
 
     vivos = [i for i, e in enumerate(inimigos_cap2) if e.esta_vivo()]
-
     if not vivos:
         fim_batalha_cap2()
         return
-
     if alvo_cap2 not in vivos:
         alvo_cap2 = vivos[0]
 
     inimigo = inimigos_cap2[alvo_cap2]
     dano = aliado.ataque(inimigo, especial)
-
     if dano is None:
         notice = 'Energia insuficiente!'
         notice_until = pygame.time.get_ticks() + 1500
@@ -390,31 +498,69 @@ def atacar_cap2(especial=False):
     notice = f'{aliado.nome} causou {dano} de dano!'
     notice_until = pygame.time.get_ticks() + 1500
 
-    vivos = [i for i, e in enumerate(inimigos_cap2) if e.esta_vivo()]
+    # No capítulo 5, a luta contra o capitão é uma derrota roteirizada:
+    # o jogador participa do combate, mas o grupo acaba sendo vencido para
+    # dar lugar à chegada de Tupã prevista no roteiro.
+    if cap2_parte == 10:
+        # O capitão resiste até a virada narrativa; não é possível encerrar
+        # a batalha antes da cena em que ele derrota a equipe.
+        chefe_final = next((e for e in inimigos_cap2 if e.nome == 'Capitão'), None)
+        if chefe_final is not None and not chefe_final.esta_vivo():
+            chefe_final.vida = 1
+        turnos_cap5 += 1
+        if turnos_cap5 >= 4:
+            for personagem in equipe_batalha:
+                personagem.vida = 0
+            next_script(CENA3_5_FIM)
+            return
 
+    # Na primeira luta, o roteiro exige que o grupo perca. O chefe não pode
+    # ser derrotado nesta fase; após três ações, a cena de derrota é acionada.
+    if cap2_parte == 6:
+        chefe = inimigos_cap2[0]
+        if not chefe.esta_vivo():
+            chefe.vida = 1
+        turnos_primordial += 1
+        if turnos_primordial >= 3:
+            for personagem in equipe_batalha:
+                personagem.vida = 0
+            next_script(CENA2_4)
+            return
+
+    vivos = [i for i, e in enumerate(inimigos_cap2) if e.esta_vivo()]
     if not vivos:
         fim_batalha_cap2()
         return
-
     alvo_cap2 = vivos[0]
 
-    # Contra-ataque de um inimigo contra um aliado vivo
-    inimigos_vivos = [e for e in inimigos_cap2 if e.esta_vivo()]
+    inimigo = random.choice([e for e in inimigos_cap2 if e.esta_vivo()])
     aliados_vivos = [p for p in equipe_batalha if p.esta_vivo()]
+    if not aliados_vivos:
+        if cap2_parte == 6:
+            next_script(CENA2_4)
+        elif cap2_parte == 10:
+            next_script(CENA3_5_FIM)
+        else:
+            state = 'cap2_defeat'
+        return
 
-    inimigo = random.choice(inimigos_vivos)
     alvo = random.choice(aliados_vivos)
-
     dano_inimigo = inimigo.ataque(alvo)
-
     notice = f'{inimigo.nome} atacou {alvo.nome}: -{dano_inimigo} HP!'
     notice_until = pygame.time.get_ticks() + 1800
 
     if not any(p.esta_vivo() for p in equipe_batalha):
-        state = 'cap2_defeat'
+        if cap2_parte == 6:
+            next_script(CENA2_4)
+        elif cap2_parte == 10:
+            next_script(CENA3_5_FIM)
+        else:
+            state = 'cap2_defeat'
 
 selected=0; selected_action=0; aliado_selecionado=0
 cap2_parte = 1
+turnos_primordial = 0
+turnos_cap5 = 0
 running=True
 while running:
     dt=clock.tick(60)/1000;t+=dt;now=pygame.time.get_ticks()
@@ -433,8 +579,11 @@ while running:
                 if event.key==pygame.K_q:selected_action=0
                 if event.key==pygame.K_e:selected_action=1
                 if event.key in (pygame.K_RETURN,pygame.K_SPACE):attack(selected_action==1,selected)
-            elif state in ('end','defeat') and event.key in (pygame.K_RETURN,pygame.K_SPACE):
+            elif state in ('end','defeat','cap2_defeat') and event.key in (pygame.K_RETURN,pygame.K_SPACE):
                 if state=='defeat':start_battle(True)
+                elif state=='cap2_defeat':
+                    EQUIPE.clear()
+                    state='team_select'
                 else:state='menu'
         if event.type==pygame.MOUSEBUTTONDOWN and event.button==1:
             mx,my=event.pos
@@ -475,7 +624,7 @@ while running:
                             break
 
                     # Selecionar inimigo
-                    for i, x in enumerate((580, 720, 860)):
+                    for i, x in enumerate((580, 720, 860)[:len(inimigos_cap2)]):
                         area = pygame.Rect(x - 65, 100, 130, 210)
 
                         if area.collidepoint(mx, my):
@@ -495,8 +644,10 @@ while running:
                             'Caubi': (19, 90, 100, 14, 25),
                             'Jaciara': (20, 105, 100, 20, 32),
                             'Akin': (30, 120, 100, 21, 36),
-                            'Curupira': (22, 110, 100, 22, 38)
-                        }
+                            'Curupira': (22, 110, 100, 22, 38),
+                            'Guaraci': (25, 155, 110, 30, 52),
+                            'Jaci': (25, 115, 150, 21, 46),
+                            }
 
                         equipe_batalha = [
                             Personagem(nome, *dados[nome])
@@ -521,6 +672,37 @@ while running:
                                 Vilao('Boitatá', 300, 450, 'Alta', 20)
                             ]
 
+                        elif cap2_parte == 5:
+                            inimigos_cap2 = [
+                                Vilao('Angoera 1', 100, 85, 'Média', 13),
+                                Vilao('Angoera 2', 100, 85, 'Média', 13),
+                                Vilao('Angoera 3', 100, 85, 'Média', 13)
+                            ]
+
+                        elif cap2_parte == 8:
+                            inimigos_cap2 = [
+                                Vilao('Soldado 1', 30, 65, 'Baixa', 10),
+                                Vilao('Soldado 2', 30, 65, 'Baixa', 10),
+                                Vilao('Soldado 3', 30, 65, 'Baixa', 10),
+                            ]
+                        elif cap2_parte == 9:
+                            inimigos_cap2 = [
+                                Vilao('Soldado 1', 30, 75, 'Baixa', 11),
+                                Vilao('Soldado 2', 30, 75, 'Baixa', 11),
+                                Vilao('Oficial', 40, 145, 'Alta', 16),
+                            ]
+                        elif cap2_parte == 10:
+                            inimigos_cap2 = [
+                                Vilao('Capitão', 45, 420, 'Alta', 23),
+                                Vilao('Soldado 1', 30, 95, 'Média', 13),
+                                Vilao('Soldado 2', 30, 95, 'Média', 13),
+                            ]
+
+                        elif cap2_parte in (6, 7):
+                            inimigos_cap2 = [
+                                Vilao('Angoera Primordial', 500, 650, 'Alta', 24 if cap2_parte == 6 else 20)
+                            ]
+
                         else:
                             inimigos_cap2 = [
                                 Vilao('Angoera 1', 100, 60, 'Média', 10),
@@ -533,7 +715,7 @@ while running:
                         aliado_selecionado = 0
                         notice = 'Escolha um inimigo para atacar!'
                         notice_until = pygame.time.get_ticks() + 2000
-                        if cap2_parte in (1, 3, 4):
+                        if cap2_parte in (1, 3, 4, 5, 6, 7, 8, 9, 10):
                             state = 'battle_cap2'
                         else:
                             next_script(CENA5)
@@ -562,6 +744,9 @@ while running:
 
                             break
 
+            elif state=='cap2_defeat':
+                EQUIPE.clear()
+                state='team_select'
             elif state=='end':
                 print('Clique na tela final:', mx, my)
 
@@ -598,6 +783,35 @@ while running:
                     idx=0
                     state='story'
 
+
+                elif pygame.Rect(490, 182, 280, 63).collidepoint(mx, my):
+                    if 'Guaraci' in DESBLOQUEADOS:
+                        DESBLOQUEADOS.remove('Guaraci')
+                    if 'Jaci' in DESBLOQUEADOS:
+                        DESBLOQUEADOS.remove('Jaci')
+                    for personagem in ('Akin', 'Curupira'):
+                        if personagem not in DESBLOQUEADOS:
+                            DESBLOQUEADOS.append(personagem)
+                    EQUIPE.clear()
+                    cap2_parte = 5
+                    turnos_primordial = 0
+                    script = CENA1_4
+                    idx = 0
+                    state = 'story'
+
+                elif pygame.Rect(187, 256, 280, 63).collidepoint(mx, my):
+                    # Capítulo 5 — A Ira de Tupã.
+                    # Libera todo o elenco jogável para as batalhas finais.
+                    for personagem in ('Akin', 'Curupira', 'Guaraci', 'Jaci'):
+                        if personagem not in DESBLOQUEADOS:
+                            DESBLOQUEADOS.append(personagem)
+                    EQUIPE.clear()
+                    equipe_batalha.clear()
+                    cap2_parte = 8
+                    script = CENA1_5
+                    idx = 0
+                    state = 'story'
+
                 elif pygame.Rect(19,490,114,37).collidepoint(mx,my):
                     state='menu'
                 
@@ -610,7 +824,10 @@ while running:
                 
     elif state=='story':
         kind,who,line=script[idx]
-        backdrop('mata_fogo' if script is CENA3_3 else 'mata' if script in (CENA1_3, CENA2_3, CENA4_3) else 'acampamento' if script is CENA3 else 'noite' if script is CENA4 else 'clareira' if script in (CENA5, CENA5_FIM) else 'floresta' if script in (CENA1, CENA2) else ('peace' if kind=='sleep' else kind),t)
+        if script in (CENA1_5, CENA1_5_FIM, CENA2_5, CENA2_5_FIM, CENA3_5, CENA3_5_FIM, CENA4_5, CENA4_5_FIM):
+            backdrop('storm' if kind == 'storm' else 'peace' if kind == 'peace' else 'acampamento', t)
+        else:
+            backdrop('mata_fogo' if script is CENA3_3 else 'mata' if script in (CENA1_3, CENA2_3, CENA4_3) else 'acampamento' if script is CENA3 else 'noite' if script is CENA4 else 'clareira' if script in (CENA5, CENA5_FIM) else 'floresta' if script in (CENA1, CENA2) else ('peace' if kind=='sleep' else kind),t)
         if kind=='sleep':
             shade=pygame.Surface((W,H),pygame.SRCALPHA);shade.fill((2,6,16,188));screen.blit(shade,(0,0))
             txt('A ALDEIA ADORMECE...',230,195,MID,GOLD)
@@ -626,19 +843,23 @@ while running:
     elif state=='team_select':
         desenhar_selecao_equipe()
     elif state=='battle_cap2':
-        screen.blit(BACKS['floresta' if cap2_parte == 1 else 'mata' if cap2_parte == 3 else 'mata_fogo' if cap2_parte == 4 else 'clareira'], (0, 0))
+        screen.blit(BACKS['acampamento' if cap2_parte in (8, 9, 10) else 'floresta' if cap2_parte == 1 else 'mata' if cap2_parte == 3 else 'mata_fogo' if cap2_parte == 4 else 'mata_corrompida' if cap2_parte == 5 else 'clareira'], (0, 0))
 
         # Inimigos: lado direito, parte superior
         posicoes_inimigos = [580, 720, 860]
         alturas_inimigos = [180, 180, 195]
 
         for i, inimigo in enumerate(inimigos_cap2):
-            x = 720 if inimigo.nome == 'Boitatá' else posicoes_inimigos[i]
+            x = 720 if inimigo.nome in ('Boitatá', 'Angoera Primordial') else posicoes_inimigos[i]
 
             if inimigo.esta_vivo():
                 # Escolhe a arte, a altura, a largura da barra de vida e se vira pro outro lado
-                if inimigo.nome == 'Angoera Ancestral':
-                    arte, altura, larg_barra, virar = 'ancestral', 230, 130, False
+                if inimigo.nome == 'Capitão':
+                    arte, altura, larg_barra, virar = 'captain', 245, 145, False
+                elif inimigo.nome == 'Oficial':
+                    arte, altura, larg_barra, virar = 'leader', 220, 115, False
+                elif inimigo.nome in ('Angoera Ancestral', 'Angoera Primordial'):
+                    arte, altura, larg_barra, virar = ('angoera_primordial' if inimigo.nome == 'Angoera Primordial' else 'ancestral'), 230, 130, False
                 elif inimigo.nome == 'Boitatá':
                     arte, altura, larg_barra, virar = 'boitata', 250, 200, False    
                 elif inimigo.nome.startswith('Angoera'):
@@ -773,6 +994,11 @@ while running:
         backdrop('storm',t);rect((6,10,20),(0,0,W,H))
         txt('Maíra caiu em batalha',230,180,MID,RED)
         txt('Enter ou clique para tentar a revanche novamente',195,270,FONT)
+    elif state=='cap2_defeat':
+        screen.blit(BACKS['clareira'], (0, 0))
+        rect((6,10,20),(0,0,W,H))
+        txt('A equipe foi derrotada',300,180,MID,RED)
+        txt('Enter ou clique para escolher outra equipe e tentar novamente',145,270,FONT)
     elif state=='end':
                screen.blit(TELA_FIM,(0,0))
     pygame.display.flip()
