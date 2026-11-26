@@ -1,4 +1,4 @@
-"""Tupã: Herdeira do Trovão — capítulo 1. Python 3 + pygame."""
+"""Maíra: Herdeira do Trovão — capítulo 1. Python 3 + pygame."""
 import random
 from pathlib import Path
 from roteiro import SCENES, AFTER_LOSS, ENDING
@@ -7,6 +7,10 @@ from capitulo3 import CENA1_3, CENA2_3, CENA3_3, CENA4_3
 from capitulo4 import CENA1_4, CENA1_4_FIM, CENA2_4, CENA2_4_FIM, CENA3_4
 from capitulo5 import CENA1_5, CENA1_5_FIM, CENA2_5, CENA2_5_FIM, CENA3_5, CENA3_5_FIM, CENA4_5, CENA4_5_FIM
 import pygame
+try:
+    import cv2
+except ImportError:
+    cv2=None
 from personagem import Personagem
 from vilao import Vilao
 import os
@@ -14,7 +18,7 @@ os.environ['PYGAME_FORCE_SCALE'] = 'photo'
 pygame.init()
 W, H = 960, 540
 screen = pygame.display.set_mode((W, H), pygame.FULLSCREEN | pygame.SCALED)
-pygame.display.set_caption('Tupã: Herdeira do Trovão | Capítulo 1')
+pygame.display.set_caption('Maíra: Herdeira do Trovão | Capítulo 1')
 clock = pygame.time.Clock()
 FONT = pygame.font.SysFont('arial', 23)
 SMALL = pygame.font.SysFont('arial', 18)
@@ -28,6 +32,100 @@ ASSET = Path(__file__).resolve().parent / 'assets'
 def load(name):
     return pygame.image.load(str(ASSET / (name + '.png'))).convert_alpha()
 BACKS={n:pygame.transform.smoothscale(load('bg_'+n),(W,H)) for n in ('fire','storm','peace','dawn','floresta','equipe', 'acampamento','noite', 'clareira', 'mata', 'mata_fogo', 'mata_corrompida')}
+# ---------------------------------------------------------------
+# Fundos em vídeo: imagem do .mp4 + som do .ogg (mesmo nome, em assets/).
+# Se o vídeo, o som ou o OpenCV faltarem, o jogo usa o PNG normal.
+# ---------------------------------------------------------------
+class VideoBG:
+    """Fundo animado em loop. Lê o .mp4 quadro a quadro e toca o .ogg junto."""
+    def __init__(self, name):
+        self.cap = cv2.VideoCapture(str(ASSET / (name + '.mp4')))
+        if not self.cap.isOpened():
+            raise FileNotFoundError(name + '.mp4')
+        self.fps = self.cap.get(cv2.CAP_PROP_FPS) or 24
+        self.total = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT)) or 1
+        self.atual = -1
+        self.inicio = pygame.time.get_ticks()
+        self.surf = None
+        self.som = None
+        self.canal = None
+        arq = ASSET / (name + '.ogg')
+        try:
+            if arq.exists():
+                self.som = pygame.mixer.Sound(str(arq))
+        except Exception as e:
+            print('Som não carregado:', e)
+        self._ir_para(0)
+
+    def _ir_para(self, n):
+        pulo = n - self.atual
+        if 1 < pulo <= 6:                 # poucos quadros atrasados: descarta
+            for _ in range(pulo - 1):
+                self.cap.grab()
+        elif pulo != 1:                   # salto grande ou volta ao início
+            self.cap.set(cv2.CAP_PROP_POS_FRAMES, n)
+        ok, frame = self.cap.read()
+        if not ok:
+            self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+            n = 0
+            ok, frame = self.cap.read()
+            if not ok:
+                return
+        if frame.shape[1] != W or frame.shape[0] != H:
+            frame = cv2.resize(frame, (W, H))
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        self.surf = pygame.image.frombuffer(frame.tobytes(), (W, H), 'RGB').convert()
+        self.atual = n
+
+    def quadro(self):
+        """Quadro que deve aparecer agora (calculado pelo tempo, em loop)."""
+        decorrido = (pygame.time.get_ticks() - self.inicio) / 1000
+        alvo = int(decorrido * self.fps) % self.total
+        if alvo != self.atual:
+            self._ir_para(alvo)
+        return self.surf
+
+    def tocar(self):
+        self.inicio = pygame.time.get_ticks()
+        self._ir_para(0)
+        if self.som:
+            self.canal = self.som.play(loops=-1)
+
+    def parar(self):
+        if self.som:
+            self.som.stop()
+        self.canal = None
+
+VIDEO_BACKS = {}
+if cv2 is not None:
+    # fundo -> nome do arquivo de vídeo (sem .mp4)
+    ARQUIVOS_VIDEO = {
+        'fire': 'bg_fire',
+        'storm': 'bg_storm',
+        'peace': 'bg_peace_AN',
+        'clareira': 'bg_clareira_AN',
+        'dawn': 'bg_dawn_AN',
+    }
+    for _n, _arq in ARQUIVOS_VIDEO.items():
+        try:
+            VIDEO_BACKS[_n] = VideoBG(_arq)
+        except Exception as e:
+            print('Vídeo ' + _arq + ' não carregado, usando PNG:', e)
+_video_usado = None      # fundo em vídeo desenhado neste quadro
+_video_tocando = None    # fundo em vídeo cujo som está tocando
+
+def sincronizar_video_audio():
+    """Chamada uma vez por quadro: liga o som quando a cena com vídeo
+    começa e desliga quando ela termina (ou quando o jogo sai dela)."""
+    global _video_usado, _video_tocando
+    if _video_usado != _video_tocando:
+        if _video_tocando:
+            VIDEO_BACKS[_video_tocando].parar()
+        if _video_usado:
+            VIDEO_BACKS[_video_usado].tocar()
+        _video_tocando = _video_usado
+    _video_usado = None
+
 PORTRAITS={n:load('portrait_'+n) for n in ('maira','caubi','araci','captain','leader','soldier', 'jaciara', 'akin', 'curupira', 'boitata', 'guaraci', 'jaci', 'angoera_primordial')}
 ACTORS={n:load('actor_'+n) for n in ('maira','maira2','caubi','araci','captain','leader','soldier', 'jaciara', 'akin', 'angoera', 'ancestral', 'curupira', 'boitata', 'guaraci', 'jaci', 'angoera_primordial')}
 TELA_INICIAL=pygame.transform.smoothscale(load('tela_inicial'),(W,H))
@@ -70,9 +168,14 @@ def wrap(s,font,width):
 def rect(color,r):pygame.draw.rect(screen,color,r)
 
 def backdrop(kind,t):
+    global _video_usado
     if kind=='sleep':kind='peace'
-    screen.blit(BACKS.get(kind,BACKS['peace']),(0,0))
-    if kind=='storm':
+    video=VIDEO_BACKS.get(kind)
+    if video and video.surf:
+        screen.blit(video.quadro(),(0,0));_video_usado=kind
+    else:
+        screen.blit(BACKS.get(kind,BACKS['peace']),(0,0))
+    if kind=='storm' and not video:
         veil=pygame.Surface((W,H),pygame.SRCALPHA);veil.fill((6,18,44,35));screen.blit(veil,(0,0))
         if int(t*2.3)%10==0:
             pygame.draw.lines(screen,(185,230,255),False,[(500,0),(466,90),(507,111),(447,210)],5)
@@ -310,8 +413,8 @@ state='menu'; idx=0; script=SCENES; phase=1; maira=None; enemies=[]; turn=0; not
 
 def start_battle(second=False):
     """Cria os inimigos; second=True ativa a revanche com raios."""
-    global state,phase,maira,enemies,turn,notice,notice_until
-    state='battle';phase=2 if second else 1;turn=0
+    global state,phase,maira,enemies,turn,notice,notice_until,selected
+    state='battle';phase=2 if second else 1;turn=0;selected=0
     # Heroína: nome, idade, vida, energia, ataque básico, ataque especial
     maira=Personagem('Maíra',20,130 if second else 100,100,23 if second else 16,44 if second else 22)
     # Vilões: nome, idade, vida, maldade, força
@@ -448,6 +551,17 @@ def attack(special,target):
         return
     enemy_action()
 
+def atacar_cap1(especial=False):
+    """Ataque da Maíra no combate do capítulo 1 (clique ou tecla)."""
+    global selected
+    vivos=[i for i,e in enumerate(enemies) if e.esta_vivo()]
+    if not vivos:return
+    if selected not in vivos:selected=vivos[0]
+    attack(especial,selected)
+    if state=='battle':   # a luta continua: se o alvo caiu, mira no próximo
+        vivos=[i for i,e in enumerate(enemies) if e.esta_vivo()]
+        if vivos and selected not in vivos:selected=vivos[0]
+
 def fim_batalha_cap2():
     global state
     if cap2_parte == 1:
@@ -576,9 +690,9 @@ while running:
             
             elif state=='battle':
                 if event.key in (pygame.K_1,pygame.K_2,pygame.K_3):selected=int(event.unicode)-1
-                if event.key==pygame.K_q:selected_action=0
-                if event.key==pygame.K_e:selected_action=1
-                if event.key in (pygame.K_RETURN,pygame.K_SPACE):attack(selected_action==1,selected)
+                if event.key==pygame.K_q:atacar_cap1(False)
+                if event.key==pygame.K_e:atacar_cap1(True)
+                if event.key in (pygame.K_RETURN,pygame.K_SPACE):atacar_cap1(False)
             elif state in ('end','defeat','cap2_defeat') and event.key in (pygame.K_RETURN,pygame.K_SPACE):
                 if state=='defeat':start_battle(True)
                 elif state=='cap2_defeat':
@@ -590,19 +704,19 @@ while running:
             if state=='menu' and pygame.Rect(534,394,237,70).collidepoint(mx,my):script=SCENES;idx=0;state='chapters'
             elif state=='story':advance()
             elif state=='battle':
-                for i in range(3):
-                    if pygame.Rect((432,628,827)[i]-96,30,192,307).collidepoint(mx,my):
-                        selected=i
-
-                if pygame.Rect(26,429,222,50).collidepoint(mx,my):
-                    selected_action=0
-
-                if pygame.Rect(266,429,278,50).collidepoint(mx,my):
-                    selected_action=1
-
-                if pygame.Rect(736,429,195,50).collidepoint(mx,my):
-                    attack(selected_action==1,selected)
-
+                # Ataque básico
+                if pygame.Rect(540, 470, 175, 45).collidepoint(mx, my):
+                    atacar_cap1(False)
+                # Habilidade especial
+                elif pygame.Rect(730, 470, 190, 45).collidepoint(mx, my):
+                    atacar_cap1(True)
+                else:
+                    # Selecionar inimigo
+                    for i, x in enumerate((580, 720, 860)[:len(enemies)]):
+                        if pygame.Rect(x - 65, 100, 130, 210).collidepoint(mx, my):
+                            if enemies[i].esta_vivo():
+                                selected = i
+                            break
             elif state=='battle_cap2':
 
                 # Ataque básico
@@ -843,7 +957,7 @@ while running:
     elif state=='team_select':
         desenhar_selecao_equipe()
     elif state=='battle_cap2':
-        screen.blit(BACKS['acampamento' if cap2_parte in (8, 9, 10) else 'floresta' if cap2_parte == 1 else 'mata' if cap2_parte == 3 else 'mata_fogo' if cap2_parte == 4 else 'mata_corrompida' if cap2_parte == 5 else 'clareira'], (0, 0))
+        backdrop('acampamento' if cap2_parte in (8, 9, 10) else 'floresta' if cap2_parte == 1 else 'mata' if cap2_parte == 3 else 'mata_fogo' if cap2_parte == 4 else 'mata_corrompida' if cap2_parte == 5 else 'clareira', t)
 
         # Inimigos: lado direito, parte superior
         posicoes_inimigos = [580, 720, 860]
@@ -942,64 +1056,86 @@ while running:
         if now < notice_until:
             txt(notice, 540, 440, SMALL, GOLD)        
     elif state=='battle':
-        
-       
         backdrop('storm' if phase==2 else 'fire',t)
-        tint=pygame.Surface((W,375),pygame.SRCALPHA)
-        tint.fill((8,14,25,123)); screen.blit(tint,(0,0))
-        
-        pygame.draw.rect(screen,(16,27,38),(0,307,W,70))
-        pygame.draw.line(screen,(109,126,131),(0,306),(960,306),2)
-        pygame.draw.rect(screen,(9,15,25),(0,377,W,163))
-        pygame.draw.line(screen,GOLD,(0,377),(W,377),2)
-        # Hero and enemy actors: same portrait art language, no blocky placeholder sprites.
-        actor('maira2' if phase==2 else 'maira',148,317,263,True)
-        txt('MAÍRA',115,50,SMALL,GOLD)
-        centers=(432,628,827)
-        keys=('soldier','soldier','leader')
-        for i,e in enumerate(enemies):
-            if not e.esta_vivo():continue
-            cx=centers[i]
-            actor(keys[i],cx,316,216 if i<2 else 238,selected==i,flip=(i==1))
-            if selected==i:
-                pygame.draw.polygon(screen,GOLD,[(cx-9,79),(cx+9,79),(cx,93)])
-                pygame.draw.line(screen,GOLD,(cx-61,326),(cx+61,326),3)
-            plate=pygame.Rect(cx-91,32,182,49)
-            pygame.draw.rect(screen,(10,20,33),plate,border_radius=6)
-            pygame.draw.rect(screen,(70,83,91),plate,1,border_radius=6)
-            f=pygame.font.SysFont('arial',15,bold=True)
-            label='Líder da Patrulha' if i==2 else e.nome
-            screen.blit(f.render(label,True,GOLD if i==2 else WHITE),(plate.x+9,plate.y+5))
-            pygame.draw.rect(screen,(48,54,65),(plate.x+9,plate.y+32,164,9),border_radius=3)
-            pygame.draw.rect(screen,RED,(plate.x+9,plate.y+32,round(164*e.vida/e.vida_max),9),border_radius=3)
-            hp_txt=SMALL.render(f"{e.vida}/{e.vida_max} HP",True,WHITE)
-            screen.blit(hp_txt,(cx-hp_txt.get_width()//2,334))
-        # Fixed HUD: status row, action row, and help line.
-        txt('MAÍRA',26,392,SMALL,GOLD)
-        txt(f'HP {maira.vida}/{maira.vida_max}',139,392,SMALL)
-        txt(f'EP {maira.energia}/{maira.energia_max}',292,392,SMALL,BLUE)
-        pygame.draw.rect(screen,(48,54,65),(139,414,130,8),border_radius=3)
-        pygame.draw.rect(screen,GREEN,(139,414,round(130*maira.vida/maira.vida_max),8),border_radius=3)
-        pygame.draw.rect(screen,(48,54,65),(292,414,130,8),border_radius=3)
-        pygame.draw.rect(screen,BLUE,(292,414,round(130*maira.energia/maira.energia_max),8),border_radius=3)
-        txt('ALVO: '+(enemies[selected].nome if enemies[selected].esta_vivo() else 'Derrotado'),477,392,SMALL)
-        b0=btn('Q  Golpe de Lança',26,429,222,50,True)
-        b1=btn('E  '+('Raio (25 EP)' if phase==2 else 'Investida (25 EP)'),266,429,278,50,maira.energia>=Personagem.CUSTO_ESPECIAL)
-        b2=btn('ATACAR  Enter',736,429,195,50)
-        pygame.draw.rect(screen,GOLD,b0 if selected_action==0 else b1,3,border_radius=3)
-        if now<notice_until:txt(notice,28,499,SMALL,GOLD)
-        else:txt('1 / 2 / 3  selecionar alvo     Q / E  habilidade     Enter  atacar',28,499,SMALL)
+        tint=pygame.Surface((W,H),pygame.SRCALPHA);tint.fill((8,14,25,45));screen.blit(tint,(0,0))
+
+        # Inimigos: lado direito, parte superior (mesmo layout dos outros capítulos)
+        posicoes_inimigos = [580, 720, 860]
+        alturas_inimigos = [180, 180, 220]
+        for i, inimigo in enumerate(enemies):
+            x = posicoes_inimigos[i]
+            if inimigo.esta_vivo():
+                if i == 2:
+                    arte, altura, larg_barra, virar = 'leader', alturas_inimigos[i], 115, False
+                else:
+                    arte, altura, larg_barra, virar = 'soldier', alturas_inimigos[i], 90, (i == 1)
+                actor(arte, x, 300, altura, focused=(i == selected), flip=virar)
+
+                # Seta dourada acima do inimigo escolhido
+                if i == selected:
+                    y_seta = 300 - altura - 15
+                    pygame.draw.polygon(
+                        screen, GOLD,
+                        [(x - 9, y_seta), (x + 9, y_seta), (x, y_seta + 14)]
+                    )
+
+                # Nome centralizado embaixo do inimigo
+                nome_img = SMALL.render(inimigo.nome, True, WHITE)
+                screen.blit(nome_img, (x - nome_img.get_width() // 2, 303))
+
+                # Barra de vida centralizada
+                pygame.draw.rect(screen, (50, 50, 50), (x - larg_barra // 2, 327, larg_barra, 7))
+                largura = max(0, round(larg_barra * inimigo.vida / inimigo.vida_max))
+                pygame.draw.rect(screen, RED, (x - larg_barra // 2, 327, largura, 7))
+            else:
+                txt('DERROTADO', x - 45, 303, SMALL, RED)
+
+        # Aliada: lado esquerdo, parte inferior
+        actor('maira2' if phase==2 else 'maira', 200, 425, 210, focused=True)
+
+        # Painel inferior de combate
+        painel = pygame.Rect(18, 455, 924, 78)
+        pygame.draw.rect(screen, (10, 18, 25), painel, border_radius=8)
+        pygame.draw.rect(screen, (178, 137, 78), painel, 2, border_radius=8)
+
+        # Cartão de status da Maíra
+        x = 30
+        card = pygame.Rect(x, 464, 155, 60)
+        pygame.draw.rect(screen, (27, 35, 39), card, border_radius=5)
+        pygame.draw.rect(screen, GOLD, card, 3, border_radius=5)
+        txt(maira.nome.upper(), x + 8, 465, SMALL, GOLD)
+        txt(f'HP {maira.vida}/{maira.vida_max}', x + 8, 484, NOME_FONT, WHITE)
+        pygame.draw.rect(screen, (55, 55, 55), (x + 8, 498, 139, 5))
+        largura_hp = round(139 * maira.vida / maira.vida_max) if maira.vida_max else 0
+        pygame.draw.rect(screen, (65, 160, 85), (x + 8, 498, largura_hp, 5))
+        txt(f'EP {maira.energia}/{maira.energia_max}', x + 8, 502, NOME_FONT, WHITE)
+        pygame.draw.rect(screen, (55, 55, 55), (x + 8, 516, 139, 5))
+        largura_ep = round(139 * maira.energia / maira.energia_max) if maira.energia_max else 0
+        pygame.draw.rect(screen, (65, 125, 190), (x + 8, 516, largura_ep, 5))
+
+        # Dica de controles (espaço vazio do painel)
+        txt('Clique no inimigo para escolher o alvo', 200, 478, NOME_FONT, (150, 150, 150))
+        txt('ou use 1 / 2 / 3  -  Q / E atacam', 200, 496, NOME_FONT, (150, 150, 150))
+
+        # Botões de ação
+        btn('Q  GOLPE BÁSICO', 540, 470, 175, 45, True)
+        btn('E  HABILIDADE', 730, 470, 190, 45, maira.energia >= Personagem.CUSTO_ESPECIAL)
+
+        if now < notice_until:
+            txt(notice, 540, 440, SMALL, GOLD)
         shake=max(0,shake-1)
+
     elif state=='defeat':
         backdrop('storm',t);rect((6,10,20),(0,0,W,H))
         txt('Maíra caiu em batalha',230,180,MID,RED)
         txt('Enter ou clique para tentar a revanche novamente',195,270,FONT)
     elif state=='cap2_defeat':
-        screen.blit(BACKS['clareira'], (0, 0))
+        backdrop('clareira', t)
         rect((6,10,20),(0,0,W,H))
         txt('A equipe foi derrotada',300,180,MID,RED)
         txt('Enter ou clique para escolher outra equipe e tentar novamente',145,270,FONT)
     elif state=='end':
                screen.blit(TELA_FIM,(0,0))
+    sincronizar_video_audio()
     pygame.display.flip()
 pygame.quit()

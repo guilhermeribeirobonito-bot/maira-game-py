@@ -99,5 +99,5 @@ CENA3_4 = [
     ('mata', 'Maíra', 'Eles já tiraram demais de nós. Não vou permitir que destruam mais nenhuma aldeia.'),
     ('mata', 'Akin', 'Então precisamos descobrir quantos são e o que estão planejando.'),
     ('mata', 'Maíra', 'Vamos nos aproximar com cuidado. Nossa jornada ainda não terminou.'),
-    ('mata', 'Narrador', 'Com Guaraci e Jaci ao seu lado, o grupo seguiu em direção à fumaça. A vitória contra o Angoera Primordial havia revelado uma ameaça ainda maior — e o próximo passo os levaria diretamente ao avanço dos portugueses.'),
+    ('mata', 'Narrador', 'o grupo seguiu em direção à fumaça. A vitória contra o Angoera Primordial havia revelado uma ameaça ainda maior — e o próximo passo os levaria diretamente ao avanço dos portugueses.'),
 ]
