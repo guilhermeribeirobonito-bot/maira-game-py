@@ -48,16 +48,8 @@ A história se passa em 1500, no litoral brasileiro. Maíra, uma jovem guerreira
 
 > Se o OpenCV não estiver instalado, o jogo ainda funciona, mas usa imagens paradas no lugar dos vídeos de fundo.
 
-## Controles
 
-| Ação | Tecla |
-|---|---|
-| Avançar diálogo | Espaço, Enter ou clique |
-| Escolher alvo na batalha | 1, 2 ou 3 |
-| Ataque básico | Q |
-| Ataque especial | E |
-| Atacar o alvo escolhido | Enter |
-| Sair ou voltar | Esc |
+
 
 ## Estrutura do projeto
 
