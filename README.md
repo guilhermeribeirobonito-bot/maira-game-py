@@ -87,10 +87,7 @@ Este projeto também serve como estudo de Python. Os principais conceitos aparec
 
 ## Autor
 
-Feito por **SEU NOME**.
+Feito por Ivan Guilherme
 
-<!-- Se quiser, adicione um link: [GitHub](https://github.com/SEU-USUARIO) -->
 
-## Licença
 
-Defina aqui a licença do projeto (por exemplo, MIT) ou informe que os direitos são reservados.
